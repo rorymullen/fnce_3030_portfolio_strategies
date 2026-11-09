@@ -1,0 +1,10 @@
+# CRSP and Compustat are licensed: never commit or share them.
+data/
+
+# Each strategy's results, made by run.py.
+results/
+
+# The Python environment uv makes.
+.venv/
+__pycache__/
+.DS_Store

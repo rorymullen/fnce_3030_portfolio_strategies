@@ -1,0 +1,15 @@
+[project]
+name = "fnce-3030-portfolio-strategies"
+version = "0.1.0"
+description = "Back-test a stock-selection signal on CRSP and Compustat data and make a fund-style factsheet (FNCE 3030, CU Boulder)."
+readme = "README.md"
+requires-python = ">=3.12,<3.14"   # pandas 2.2 (all wrds supports) has no prebuilt package for 3.14: uv would compile it, which fails on a laptop without C++ build tools
+dependencies = [
+    "matplotlib",
+    "pandas>=2.2,<2.3",   # the range the wrds package supports
+    "pyarrow",
+    "scipy",
+    "statsmodels",
+    "typst",
+    "wrds>=3.5",          # WRDS's own package; 3.5 works with SQLAlchemy 2
+]
