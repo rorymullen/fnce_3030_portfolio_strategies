@@ -1,14 +1,16 @@
 """Step 5: make the factsheet. (Lecture 11)
 
 It draws the growth chart, puts step 4's tables into factsheet.typ, and
-writes results/<strategy>/factsheet.pdf: a two-page sheet laid out like a real
-fund's, labeled as a hypothetical backtest.
+writes results/<strategy>/factsheet.pdf: two pages laid out like a real
+fund's sheet, labeled as a hypothetical backtest, and a page of notes.
 
     page 1   the strategy, its facts, the growth of $10,000 and the
              drawdowns beside the market's, and its returns over 1, 3, 5 and
              10 years and by calendar year, before and after trading costs
     page 2   risk, alphas and factor loadings, style boxes, industry
              weights, the largest holdings, and how it was all made
+    page 3   notes on how each number is worked out, which a real fund's
+             sheet would not print: the formulas, arithmetic or compound
 
 make_factsheet() runs the parts in order; each has its own function below.
 run.py calls steps 3 and 4, then this step. To run it on its own:
@@ -52,6 +54,12 @@ def num(x, decimals=1, scale=100):
 def month_name(month):
     """'2003-03' -> 'Mar 2003'."""
     return pd.Period(month, "M").strftime("%b %Y")
+
+
+def noted(text, note):
+    """A label that carries a note: the template prints the note's number
+    after it, and the note itself on page 3 (see notes())."""
+    return {"text": text, "note": note}
 
 
 def growth(r, start=10_000):
@@ -162,10 +170,12 @@ def facts(strategy, tables):
         ["Stocks", f"US common stocks above the {MICROCAP:.0%} NYSE size "
                    "cutoff"],
         ["Trading cost", f"{100 * COST:.1f}% of each dollar traded"],
-        ["Turnover", f"{returns['turnover'].mean():.0%} a month on average, "
-                     "bought plus sold"],
+        [noted("Turnover", "turnover"),
+         f"{returns['turnover'].mean():.0%} a month on average, "
+         "bought plus sold"],
         ["Holdings", f"{held} ({month_name(last['month'].iloc[0])})"],
-        ["Benchmark", "the US stock market, weighted by market cap"],
+        [noted("Benchmark", "market"),
+         "the US stock market, weighted by market cap"],
         ["Period", f"{month_name(returns.index[0])} to "
                    f"{month_name(returns.index[-1])}"],
     ]
@@ -193,20 +203,22 @@ def risk_table(tables):
     s = tables["summary"]
     beta = tables["alphas"].loc["CAPM", "mktrf"]
 
-    def row(label, metric, decimals=1, scale=100):
-        return [label] + [num(float(s.loc[metric, col]), decimals, scale)
-                          for col in ("strategy", "market")]
+    def row(label, metric, note, decimals=1, scale=100):
+        return [noted(label, note)] + [
+            num(float(s.loc[metric, col]), decimals, scale)
+            for col in ("strategy", "market")]
 
     return {"header": ["", "Strategy", "Market"],
-            "rows": [row("Average return, % a year", "average return"),
-                     row("Volatility, % a year", "volatility"),
-                     row("Sharpe ratio", "Sharpe ratio", 2, 1),
-                     row("Worst drawdown, %", "worst drawdown"),
+            "rows": [row("Average return, % a year", "average return",
+                         "average"),
+                     row("Volatility, % a year", "volatility", "volatility"),
+                     row("Sharpe ratio", "Sharpe ratio", "sharpe", 2, 1),
+                     row("Worst drawdown, %", "worst drawdown", "drawdown"),
                      ["Its peak", month_name(s.loc["drawdown from", "strategy"]),
                       month_name(s.loc["drawdown from", "market"])],
                      ["Its trough", month_name(s.loc["drawdown to", "strategy"]),
                       month_name(s.loc["drawdown to", "market"])],
-                     ["Beta", num(beta, 2, 1), "1.00"]]}
+                     [noted("Beta", "alpha"), num(beta, 2, 1), "1.00"]]}
 
 
 def alpha_table(tables):
@@ -294,10 +306,7 @@ def method(strategy):
                     "is the long side's minus the short side's, and it "
                     "earns no interest on cash.")
     text += [
-        "Alphas are the intercepts of regressions of the strategy's monthly "
-        "excess returns after costs on the factors' returns. The style boxes "
-        "come from Sharpe's style analysis of each side's returns before "
-        "costs, on Ken French's six portfolios by size and P/E, and T-bills.",
+        "The notes below say how each number is worked out.",
         "Data: CRSP and Compustat through WRDS; the factors, the style "
         "portfolios and the market from the Ken French Data Library.",
         "Limitations: the code cannot check whether a signal uses "
@@ -307,6 +316,127 @@ def method(strategy):
         "do not predict future returns.",
     ]
     return " ".join(text)
+
+
+# The notes, in the order their numbers first appear on the sheet. A label
+# made with noted(text, key) prints the number of the note with that key.
+NOTES = ["turnover", "market", "growth", "drawdown", "returns", "calendar",
+         "average", "volatility", "sharpe", "alpha", "style", "industries"]
+
+
+def notes(strategy, tables):
+    """How each number on the sheet is worked out, one note per key in
+    NOTES. The text is Typst markup: $...$ is math, \\$ a dollar sign."""
+    n = {key: i + 1 for i, key in enumerate(NOTES)}
+    ls = strategy.LONG_SHORT
+    returns = tables["returns"]
+    rebalanced = month_name(tables["holdings"]["month"].max())
+    held = month_name(returns.index[-1])
+
+    # a calendar year on page 1 that the backtest covers only in part
+    partial = ""
+    shown = tables["calendar"].tail(YEARS_SHOWN).index
+    for year in shown:
+        months = returns.index[returns.index.year == year]
+        if len(months) < 12:
+            partial += (f" {year} covers {months[0].strftime('%B')} to "
+                        f"{months[-1].strftime('%B')} only.")
+
+    text = {
+        "turnover": (
+            "*Turnover.* At each rebalance, "
+            "$sum_i abs(w_i^\"new\" - w_i^\"drift\")$, where "
+            "$w_i^\"drift\"$ is stock $i$'s weight after a month of moving "
+            "with its return, and a stock bought or sold in full counts its "
+            "whole weight; replacing the whole portfolio is 200%. "
+            + ("The long and short sides' turnovers are added. " if ls else "")
+            + "The figure is the arithmetic average over all months. Each "
+            f"month's trading cost, {100 * COST:.1f}% times that month's "
+            "turnover, comes off that month's return."),
+        "market": (
+            "*US stock market.* Ken French's market return, Mkt-RF plus the "
+            "T-bill rate: every US common stock on the NYSE, AMEX and Nasdaq, "
+            "weighted by market cap, microcaps included. It is the Market "
+            "column everywhere except the industry weights "
+            f"(note {n['industries']})."),
+        "growth": (
+            "*Growth of \\$10,000.* \\$10,000 × "
+            "$(1+r_1)(1+r_2) dots.c (1+r_t)$, compounding the monthly returns "
+            "after costs, on a log scale, where equal percentage changes are "
+            "equal steps."
+            + (" A long-short strategy puts no money down: the line is "
+               "\\$10,000 earning the long side's return minus the short "
+               "side's each month, with no interest on the cash." if ls
+               else "")),
+        "drawdown": (
+            "*Drawdowns.* Each month-end value divided by the highest "
+            "month-end value so far, minus 1, after costs; a fall and "
+            "recovery within a month does not show. The worst drawdown is "
+            "the lowest of these; its peak is the month of the highest value "
+            "before it, its trough the month it was reached."),
+        "returns": (
+            "*Returns, % a year.* Compound (geometric) averages: over the "
+            "last $N$ months, $[(1+r_1)(1+r_2) dots.c (1+r_N)]^(12\\/N) - 1$, "
+            "the steady yearly return that would have grown the money as "
+            "much. _Since start_ uses every month. These are not the "
+            f"arithmetic average return on page 2 (note {n['average']})."),
+        "calendar": (
+            "*Calendar-year returns.* Each year's monthly returns "
+            "compounded: "
+            "$(1+r_\"Jan\")(1+r_\"Feb\") dots.c (1+r_\"Dec\") - 1$." + partial),
+        "average": (
+            "*Average return.* The arithmetic mean of the monthly returns "
+            "after costs, times 12: $12 × (r_1 + r_2 + dots.c + r_T)\\/T$ "
+            "over all $T$ months. It is not compounded, so it differs from "
+            f"the _Since start_ return on page 1 (note {n['returns']}), which "
+            "is; with volatile returns the compound return is the lower."),
+        "volatility": (
+            "*Volatility.* The standard deviation of the monthly returns "
+            "after costs, times $sqrt(12)$: the sample standard deviation, "
+            "dividing by $T - 1$."),
+        "sharpe": (
+            "*Sharpe ratio.* The average monthly excess return divided by its "
+            "standard deviation, times $sqrt(12)$. "
+            + ("The strategy's excess return is its return after costs: a "
+               "long-short strategy puts no money down, so its return is "
+               "already an excess return. " if ls else
+               "The excess return is the return after costs minus that "
+               "month's T-bill rate. ")
+            + "The market's is Mkt-RF."),
+        "alpha": (
+            "*Alpha, loadings and beta.* Each model is an ordinary "
+            "least-squares regression of the monthly excess return after "
+            f"costs (note {n['sharpe']}) on the factors' monthly returns, "
+            "over every month. Alpha is the intercept times 12, not "
+            "compounded. The t-statistic is the intercept divided by its "
+            "standard error, with no correction for heteroskedasticity or "
+            "autocorrelation; beyond about ±2, an alpha this large would be "
+            "unlikely if the true alpha were zero. The loadings are the "
+            "slopes; beta is the CAPM's Mkt-RF loading. The factors, from "
+            "Ken French: Mkt-RF, the market minus T-bills; SMB, small minus "
+            "big stocks; HML, high minus low book-to-market; RMW, robust "
+            "minus weak profitability; CMA, conservative minus aggressive "
+            "investment; UMD, past winners minus past losers (momentum)."),
+        "style": (
+            "*Style boxes.* Sharpe's style analysis of "
+            + ("each side's" if ls else "the holdings'")
+            + " monthly returns before costs: the weights on Ken French's six "
+            "portfolios by size and P/E (each weighted by market cap) and on "
+            "T-bills, each zero or more and adding to 100%, that make the "
+            "variance of the return minus the mix's return as small as "
+            "possible. R² is 1 minus that variance divided by the variance "
+            "of the return; the intercept is the average monthly difference "
+            "times 12. The weights are shown in whole percents."),
+        "industries": (
+            "*Industry weights and largest holdings.* At the last rebalance, "
+            f"the end of {rebalanced}, for the returns of {held}: each "
+            "stock's share of its side's value. The industries are Ken "
+            "French's twelve, from each stock's SIC code at the time. The "
+            "Market column weights every US common stock in the data, "
+            "microcaps included, by market cap"
+            + ("; Net is long minus short." if ls else ".")),
+    }
+    return [{"key": key, "text": text[key]} for key in NOTES]
 
 
 def fill(name, strategy, tables):
@@ -331,6 +461,7 @@ def fill(name, strategy, tables):
         "industries": industry_table(strategy, tables),
         "holdings": holdings_tables(strategy, tables),
         "method": method(strategy),
+        "notes": notes(strategy, tables),
         # The course's not-investment-advice sentence, word for word as in
         # every other course document.
         "footer": ("Hypothetical backtest made with the FNCE 3030 course code. "

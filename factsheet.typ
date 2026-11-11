@@ -29,6 +29,13 @@
 #set text(font: ("Arial", "Helvetica"), size: 8.5pt, fill: ink, lang: "en")
 #set par(leading: 0.55em)
 
+// The notes on how each number is worked out, numbered in the order step 5
+// lists them. A label step 5 writes as (text: ..., note: key) prints the
+// number of its note after it, and so does mark(key) in a title below.
+#let note-number = d.notes.enumerate().map(((i, n)) => (n.key, i + 1)).to-dict()
+#let mark(key) = super(str(note-number.at(key)))
+#let noted(x) = if type(x) == dictionary [#x.text#mark(x.note)] else [#x]
+
 // A section: a bold title over a gold rule, then its content.
 #let section(title, body) = block(width: 100%, above: 1.3em, below: 0.4em, {
   text(9.5pt, weight: "bold", title)
@@ -49,9 +56,9 @@
     inset: (x: 4pt, y: 2.6pt),
     align: (x, y) => if x < lefts { left } else { right },
     table.hline(stroke: 0.6pt),
-    ..t.header.map(h => text(weight: "bold", h)),
+    ..t.header.map(h => text(weight: "bold", noted(h))),
     table.hline(stroke: 0.4pt),
-    ..t.rows.flatten(),
+    ..t.rows.flatten().map(noted),
     table.hline(stroke: 0.6pt),
   )
 }
@@ -104,7 +111,7 @@
       stroke: none,
       inset: (x: 0pt, y: 3pt),
       column-gutter: 6pt,
-      ..d.facts.map(f => (text(weight: "bold", f.at(0)), f.at(1))).flatten(),
+      ..d.facts.map(f => (text(weight: "bold", noted(f.at(0))), f.at(1))).flatten(),
     )
   }),
   {
@@ -112,10 +119,10 @@
       if d.objective != "" { par[*Objective.* #d.objective] }
       par(justify: true, d.description)
     })
-    section("Growth of $10,000", image(d.growth, width: 100%))
-    section("Drawdowns: the fall from the last peak", image(d.drawdowns, width: 100%))
-    section("Returns, % a year", numbers(d.periods))
-    section("Calendar-year returns, %", numbers(d.calendar))
+    section([Growth of \$10,000#mark("growth")], image(d.growth, width: 100%))
+    section([Drawdowns: the fall from the last peak#mark("drawdown")], image(d.drawdowns, width: 100%))
+    section([Returns, % a year#mark("returns")], numbers(d.periods))
+    section([Calendar-year returns, %#mark("calendar")], numbers(d.calendar))
   },
 )
 
@@ -127,18 +134,18 @@
   columns: (1fr, 1fr),
   column-gutter: 0.28in,
   section("Risk and return", numbers(d.risk)),
-  section("Style", stack(dir: ltr, spacing: 0.2in, ..d.style.map(stylebox))),
+  section([Style#mark("style")], stack(dir: ltr, spacing: 0.2in, ..d.style.map(stylebox))),
 )
 
-#section("Alpha: return the factor models do not explain",
+#section([Alpha: return the factor models do not explain#mark("alpha")],
   numbers(d.alphas, columns: (auto, auto, auto) + (1fr,) * 6))
 #v(0.5em)
 
 #grid(
   columns: (1fr, 1fr),
   column-gutter: 0.28in,
-  section("Industry weights, %", numbers(d.industries)),
-  section("Largest holdings, %", {
+  section([Industry weights, %#mark("industries")], numbers(d.industries)),
+  section([Largest holdings, %#mark("industries")], {
     for h in d.holdings {
       text(weight: "bold", h.title)
       numbers((header: ("Ticker", "Company", "Weight"), rows: h.rows),
@@ -148,3 +155,24 @@
 )
 
 #section("How it was made", text(7pt, d.method))
+
+#pagebreak()
+
+// ------------------------------- Page 3 -------------------------------
+
+// Not what a fund's factsheet would print: for class, every number that is
+// not obvious says how it is worked out. A formula never breaks across lines.
+#section("Notes on the numbers", {
+  set text(7pt)
+  show math.equation.where(block: false): box
+  v(0.3em)
+  let body = enum(tight: true, spacing: 0.9em,
+                  ..d.notes.map(n => eval(n.text, mode: "markup")))
+  // two columns of about equal length: as tall as half the notes, plus a
+  // few lines to spare
+  layout(size => {
+    let gutter = 0.28in
+    let h = measure(block(width: (size.width - gutter) / 2, body)).height
+    block(height: h / 2 + 3em, columns(2, gutter: gutter, body))
+  })
+})

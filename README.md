@@ -3,8 +3,9 @@
 Test an investment strategy of your own the way researchers and fund
 managers do. You write one function, a *signal* that ranks stocks each month.
 The code backtests it on CRSP and Compustat, the same stock and accounting
-data that finance researchers use, and turns the results into a two-page
-factsheet laid out like a real fund's.
+data that finance researchers use, and turns the results into a factsheet
+laid out like a real fund's, with a page of notes on how each number is
+worked out.
 
 This goes with Lectures 10 and 11 of FNCE 3030, Investment and Portfolio
 Management, at CU Boulder. It is optional and for interest only: it earns no
