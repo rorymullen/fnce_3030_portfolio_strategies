@@ -2,10 +2,28 @@
 
 Setting up takes about twenty minutes the first time, most of it waiting
 for downloads, and needs about 1.5 GB of free disk space (about 3 GB on a Mac
-that doesn't yet have Apple's command-line tools, which bring git). You type a few commands into a terminal: Terminal on a Mac (in
-Applications, then Utilities), or PowerShell on Windows (open the Start menu
-and type "PowerShell"). Copy each command exactly, press Enter, and wait for
-it to finish before the next.
+that doesn't yet have Apple's command-line tools, which bring git). Besides
+your WRDS class account, you need no accounts: not even one on GitHub.
+
+## The terminal
+
+You set everything up by typing commands into a terminal, a window where
+you type instructions instead of clicking. Every computer has one:
+
+- On a Mac, Terminal: press Command and Space together, type Terminal, and
+  press Return.
+- On Windows, PowerShell: open the Start menu, type PowerShell, and click
+  Windows PowerShell. (Not "Run as administrator".)
+
+Each box below holds one command. For each one, in order:
+
+1. Copy it. On GitHub, the button at the right of the box copies it.
+2. Paste it into the terminal (Command-V on a Mac, Ctrl-V on Windows) and
+   press Return (Enter on Windows).
+3. Wait until the terminal is ready for the next command: it shows a new
+   line ending in `%` on a Mac, or `>` on Windows.
+
+Then go on to the next box. Never paste two commands at once.
 
 ## 1. Install uv and git
 
@@ -13,74 +31,93 @@ it to finish before the next.
 own, so it won't disturb anything else on your computer. `git` downloads the
 code and, later, its updates.
 
-On a Mac:
+On a Mac, install uv:
 
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    xcode-select --install
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
-The second command installs git with Apple's command-line tools: click
-Install in the window that opens, and wait for it to finish. If it says they
-are already installed, you already have git. (If you use Homebrew,
-`brew install uv git` does both.)
+Then install git, which comes with Apple's command-line tools:
 
-On Windows:
+```
+xcode-select --install
+```
 
-    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-    winget install --id Git.Git -e --source winget
+A window opens: click Install, agree, and wait for it to finish, which can
+take ten minutes or more. If the terminal says the tools are already
+installed, you already have git. (If you use Homebrew, `brew install uv git`
+does both.)
+
+On Windows, install uv:
+
+```
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Then install git:
+
+```
+winget install --id Git.Git -e --source winget
+```
+
+If it asks whether you agree to the terms, type Y and press Enter; if a
+window asks whether to allow changes, click Yes.
 
 Then close the terminal and open a new one, so that it finds the new
-commands, and check that both work:
-
-    uv --version
-    git --version
-
-Each should print a version number.
+commands.
 
 ## 2. Get the code
 
-Choose a folder that iCloud Drive or OneDrive doesn't sync, because the data
-you download must stay on your own computer. Your home folder is fine, and
-the terminal starts there. Copy the course repository into it:
+The code goes in your home folder, the folder named after you, where the
+terminal starts. (Not on the Desktop or in Documents: iCloud and OneDrive
+often copy those online, and the data must stay on your own computer.)
+Download the code:
 
-    cd ~
-    git clone https://github.com/rorymullen/fnce_3030_portfolio_strategies.git
-    cd fnce_3030_portfolio_strategies
+```
+git clone https://github.com/rorymullen/fnce_3030_portfolio_strategies.git
+```
 
-Every command from here on runs inside that folder. If you close the
-terminal, open a new one and `cd` back into it first.
+That makes a folder, `fnce_3030_portfolio_strategies`, in your home folder.
+Move into it:
+
+```
+cd fnce_3030_portfolio_strategies
+```
+
+Every command from here on runs inside that folder. Whenever you open a new
+terminal, run that `cd` command first.
+
+To see the folder, open it in a window. On a Mac:
+
+```
+open .
+```
+
+On Windows:
+
+```
+explorer .
+```
+
+To find it again later: on a Mac, in Finder choose Go, then Home; on
+Windows, in File Explorer open This PC, then Local Disk (C:), then Users,
+then your name.
 
 On a Windows laptop with an ARM processor, such as a Snapdragon, run this
 once in that folder before anything else, because some of the packages the
 code uses aren't built for ARM yet. (To check: Settings, then System, then
 About; "System type" says ARM-based.)
 
-    uv python pin cpython-3.13-windows-x86_64-none
+```
+uv python pin cpython-3.13-windows-x86_64-none
+```
 
 (Without git, the green Code button on the repository's GitHub page offers
 Download ZIP. Unzip it and open a terminal in that folder. You then get
 updates by downloading again and copying your `my_strategy.py` across.)
 
-### Keep your work private
-
-Don't fork the repository on GitHub: a fork of a public repository is public
-too, and so would be your strategy. Your work is safe on your own computer.
-If you want a copy on GitHub as well, create a new **private** repository
-there, empty (no README), and point your folder at it:
-
-    git remote rename origin course
-    git remote add origin https://github.com/YOUR-USERNAME/YOUR-REPOSITORY.git
-    git push -u origin main
-
-From then on, save your work to your private repository with
-
-    git add -A
-    git commit -m "What I changed"
-    git push
-
-and bring in the course's updates with `git pull course main`. The first
-commit may ask you to tell git your name and email, and says how. The first push asks
-you to sign in to GitHub; GitHub's own tool makes that easy
-(`gh auth login`, from [cli.github.com](https://cli.github.com)).
+Your work stays on your own computer. Don't fork the repository on GitHub:
+a fork of a public repository is public too, and so would be your strategy.
 
 ## 3. Register with WRDS
 
@@ -99,37 +136,77 @@ yourself, never through an AI tool: it asks for your WRDS username and
 password, and your password should never pass through anything but your own
 keyboard.
 
-    uv run step1_download.py
+```
+uv run step1_download.py
+```
 
 The first time you run anything, uv also installs Python and the packages,
-which adds a minute or two. When step 1 asks, open Duo Mobile on your phone
-and tap Approve. Then build the monthly table, and run the serious example:
+which adds a minute or two. Type your WRDS username and press Return, then
+your password and Return. Nothing shows as you type the password; that is
+normal. When step 1 asks, open Duo Mobile on your phone and tap Approve.
 
-    uv run step2_prepare.py
-    uv run run.py examples/gross_profitability.py
+Then build the monthly table:
 
-The last command writes `results/gross_profitability/factsheet.pdf`. Open
-it: if you can read it, everything works. Now write your own signal in
+```
+uv run step2_prepare.py
+```
+
+And run the serious example:
+
+```
+uv run run.py examples/gross_profitability.py
+```
+
+That writes the example's factsheet. Open it. On a Mac:
+
+```
+open results/gross_profitability/factsheet.pdf
+```
+
+On Windows:
+
+```
+start results\gross_profitability\factsheet.pdf
+```
+
+If you can read it, everything works. Now write your own signal in
 `my_strategy.py` and run
 
-    uv run run.py my_strategy.py
+```
+uv run run.py my_strategy.py
+```
+
+Then open its factsheet. On a Mac:
+
+```
+open results/my_strategy/factsheet.pdf
+```
+
+On Windows:
+
+```
+start results\my_strategy\factsheet.pdf
+```
 
 You only run steps 1 and 2 again if you delete the files in `data/`.
 
 ## 5. Updates
 
-When the course adds or fixes something, bring it in with
+When the course adds or fixes something, bring it in, inside the folder,
+with
 
-    git pull
+```
+git pull
+```
 
-(or `git pull course main` if you made a private copy as above). The
-course never changes `my_strategy.py`, so an update never touches your work.
-If you changed other files and git stops with a message about them, paste
-the message into an AI tool and ask what to do.
+The course never changes `my_strategy.py`, so an update never touches your
+work. If you changed other files and git stops with a message about them,
+paste the message into an AI tool and ask what to do.
 
 ## When something goes wrong
 
 Read the message. The code stops with a sentence saying what went wrong
-and, usually, what to do next. If that doesn't settle it, tell an AI tool
-what you ran, paste the whole message you saw, and ask what went wrong.
-Never paste your password or rows of the data.
+and, usually, what to do next. If the terminal says a command is not found,
+close it, open a new one, `cd` into the folder, and try again. If that
+doesn't settle it, tell an AI tool what you ran, paste the whole message you
+saw, and ask what went wrong. Never paste your password or rows of the data.
