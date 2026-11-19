@@ -484,8 +484,10 @@ def make_factsheet(name, strategy):
     growth_chart(net, market, strategy.NAME, folder / "growth.svg")
     drawdown_chart(net, market, folder / "drawdowns.svg")
     data = fill(name, strategy, tables)
+    # UTF-8, as Typst reads it: Windows would otherwise write its own
+    # encoding, which has no true minus sign and stops with an error
     (folder / "factsheet.json").write_text(
-        json.dumps(data, indent=1, ensure_ascii=False))
+        json.dumps(data, indent=1, ensure_ascii=False), encoding="utf-8")
     pdf = folder / "factsheet.pdf"
     typst.compile(str(TEMPLATE), output=str(pdf), root=str(HERE),
                   sys_inputs={"data": f"/results/{name}/factsheet.json"})
